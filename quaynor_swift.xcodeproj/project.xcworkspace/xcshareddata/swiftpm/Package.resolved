@@ -1,0 +1,15 @@
+{
+  "originHash" : "6fd07d97ac6fa45e45cdf4231e11c42b93fd92ad2dcd61483d198c06503ead3c",
+  "pins" : [
+    {
+      "identity" : "quaynor",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/iBz-04/quaynor.git",
+      "state" : {
+        "revision" : "76bc81c0e076e4fc77b4b71701cde844aeea42c1",
+        "version" : "0.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}

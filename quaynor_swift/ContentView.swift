@@ -5,6 +5,7 @@
 
 import SwiftUI
 import Foundation
+import Quaynor
 
 /// Compact presence dot above the transcript (solid green).
 private let chatPartnerGreen = Color(red: 0.29, green: 0.72, blue: 0.38)
@@ -75,34 +76,73 @@ private func displayNormalizedMarkdown(_ raw: String) -> String {
 private struct AssistantMarkdownText: View {
     var markdown: String
 
-    private var normalized: String { displayNormalizedMarkdown(markdown) }
+    private var thinkContent: String? {
+        let pattern = "(?s)<think>\\s*(.*?)(?:</think>|$)"
+        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        let range = NSRange(markdown.startIndex..., in: markdown)
+        if let match = regex?.firstMatch(in: markdown, options: [], range: range) {
+            let matchRange = match.range(at: 1)
+            if let swiftRange = Range(matchRange, in: markdown) {
+                return String(markdown[swiftRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+        return nil
+    }
+
+    private var mainContent: String {
+        let pattern = "(?s)<think>.*?(?:</think>\\s*|$)"
+        let str = markdown.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        return str.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var normalizedMain: String { displayNormalizedMarkdown(mainContent) }
+
+    @State private var isThoughtExpanded = false
 
     var body: some View {
-        Group {
-            if markdown.isEmpty {
+        VStack(alignment: .leading, spacing: 8) {
+            if let thought = thinkContent, !thought.isEmpty {
+                DisclosureGroup(isExpanded: $isThoughtExpanded) {
+                    Text(thought)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 4)
+                        .multilineTextAlignment(.leading)
+                        .lineSpacing(4)
+                } label: {
+                    Text("Thought Process")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .tint(.secondary)
+            }
+
+            if !normalizedMain.isEmpty {
+                if let parsed = try? AttributedString(
+                    markdown: normalizedMain,
+                    options: AttributedString.MarkdownParsingOptions(
+                        interpretedSyntax: .full,
+                        failurePolicy: .returnPartiallyParsedIfPossible
+                    )
+                ) {
+                    Text(parsed)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .tint(.accentColor)
+                        .textSelection(.enabled)
+                        .lineSpacing(8)
+                        .multilineTextAlignment(.leading)
+                } else {
+                    Text(normalizedMain)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineSpacing(8)
+                        .multilineTextAlignment(.leading)
+                }
+            } else if thinkContent == nil && markdown.isEmpty {
                 Text(" ")
                     .font(.body)
                     .foregroundStyle(.clear)
-            } else if let parsed = try? AttributedString(
-                markdown: normalized,
-                options: AttributedString.MarkdownParsingOptions(
-                    interpretedSyntax: .full,
-                    failurePolicy: .returnPartiallyParsedIfPossible
-                )
-            ) {
-                Text(parsed)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .tint(.accentColor)
-                    .textSelection(.enabled)
-                    .lineSpacing(8)
-                    .multilineTextAlignment(.leading)
-            } else {
-                Text(normalized)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineSpacing(8)
-                    .multilineTextAlignment(.leading)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -188,7 +228,7 @@ struct ContentView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        Task { await clearServerAndLocal() }
+                        Task { await clearConversation() }
                     } label: {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.body.weight(.medium))
@@ -297,13 +337,15 @@ struct ContentView: View {
         do {
             guard let assistantIndex = messages.firstIndex(where: { $0.id == assistantId }) else { return }
 
-            for try await token in ChatClient.streamReply(message: text) {
+            let stream = try await ChatClient.shared.streamReply(message: text)
+
+            for try await token in stream {
                 var bubble = messages[assistantIndex]
                 bubble.text += token
                 messages[assistantIndex] = bubble
             }
 
-            if messages[assistantIndex].text.isEmpty {
+            if messages[assistantIndex].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 messages.remove(at: assistantIndex)
                 errorText = "No reply from model."
             }
@@ -321,11 +363,11 @@ struct ContentView: View {
         }
     }
 
-    private func clearServerAndLocal() async {
+    private func clearConversation() async {
         errorText = nil
         messages.removeAll()
         do {
-            try await ChatClient.resetConversation()
+            try await ChatClient.shared.resetConversation()
         } catch {
             errorText = error.localizedDescription
         }

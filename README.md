@@ -1,20 +1,44 @@
-# Quaynor Python + swift demo
+# Quaynor Swift demo
 
-This repository demonstrates wiring a **Python backend** that uses the [**Quaynor** Python bindings](https://www.quaynor.site/python/) (`ChatAsync`, streaming) to a **native Swift** client. The iOS app talks to a small FastAPI service that loads a Quaynor chat session and streams tokens to the UI.
+This repository demonstrates a **native Swift** client that uses the [**Quaynor** Swift package](https://www.quaynor.site/swift/) directly. There is **no Python backend** required.
 
 ## Demo
 
-<img src="screenshot.png" alt="Swift client connected to the Quaynor Python backend" width="380" />
+<img src="screenshot.png" alt="Swift client using the Quaynor Swift package" width="380" />
 
 ## Layout
 
-- **`backend/`** — FastAPI app (`server.py`) using `quaynor` for chat and NDJSON streaming on `/chat/stream`.
-- **`quaynor_swift/`** — SwiftUI app and `ChatClient` (defaults to `http://127.0.0.1:8765`).
+- **`quaynor_swift/`** — SwiftUI app and `ChatClient`.
 - **`quaynor_swift.xcodeproj`** — Open this in Xcode to build and run the Swift client.
+
+## Swift Package setup
+
+Add the Quaynor package to your app's dependencies:
+
+```swift
+dependencies: [
+	.package(url: "https://github.com/iBz-04/quaynor.git", from: "0.1.0")
+]
+```
+
+Then import and use it in Swift:
+
+```swift
+import Quaynor
+
+let chat = try await Chat.fromPath(
+	modelPath: "huggingface:bartowski/Qwen_Qwen3-0.6B-GGUF/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+)
+let stream = try chat.ask("Is a zebra black or white?")
+let text = try await stream.completed()
+print(text)
+```
+
+For full API and configuration details, see the Swift docs: https://www.quaynor.site/swift/
 
 ## Running locally (overview)
 
-1. **Backend:** From `backend/`, install dependencies (`requirements.txt`), set `QUAYNOR_MODEL` if you want a non-default model, then run the app with Uvicorn on a port that matches the Swift client (e.g. `8765`).
-2. **Swift:** Run the app in the simulator pointing at the same host/port, or set `ChatClient.baseURL` to your Mac’s LAN IP when using a physical device.
+1. Open [quaynor_swift.xcodeproj](quaynor_swift.xcodeproj) in Xcode.
+2. Build and run the SwiftUI app in the simulator or on a device.
 
-See the docstrings in `backend/server.py` and `quaynor_swift/ChatClient.swift` for API and configuration details.
+See the docstrings in `quaynor_swift/ChatClient.swift` for app-level configuration details.
