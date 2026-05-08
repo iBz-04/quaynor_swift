@@ -291,16 +291,17 @@ struct ContentView: View {
                 Spacer(minLength: 48)
             }
 
-            Group {
-                if isFromUser {
-                    Text(bubble.text)
-                        .foregroundStyle(Color.white)
-                } else {
-                    AssistantMarkdownText(markdown: bubble.text)
+            VStack(alignment: isFromUser ? .trailing : .leading, spacing: 6) {
+                Group {
+                    if isFromUser {
+                        Text(bubble.text)
+                            .foregroundStyle(Color.white)
+                    } else {
+                        AssistantMarkdownText(markdown: bubble.text)
+                    }
                 }
-            }
-            .font(.body)
-            .multilineTextAlignment(isFromUser ? .trailing : .leading)
+                .font(.body)
+                .multilineTextAlignment(isFromUser ? .trailing : .leading)
                 .padding(.horizontal, isFromUser ? 14 : 16)
                 .padding(.vertical, isFromUser ? 10 : 13)
                 .background {
@@ -314,6 +315,14 @@ struct ContentView: View {
                             .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
                     }
                 }
+
+                if !isFromUser {
+                    Text("Qwen 3")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 6)
+                }
+            }
 
             if !isFromUser {
                 Spacer(minLength: 48)

@@ -8,7 +8,7 @@ import Quaynor
 
 let circleArea = Tool(
     name: "circle_area",
-    description: "Calculates the area of a circle from its radius.",
+    description: "Calculates the area of a circle from its radius when the user asks.",
     parameters: [
         ToolParameterDefinition(
             name: "radius",
@@ -37,6 +37,7 @@ actor ChatClient {
 
     // Replace with a local file path if you have a downloaded model on device.
     private let modelPath = "huggingface:bartowski/Qwen_Qwen3-0.6B-GGUF/Qwen_Qwen3-0.6B-Q4_K_M.gguf"
+    private let systemPrompt = "You are a helpful general assistant. Only talk about or use tools when the user asks."
     private var model: Model?
     private var chat: Chat?
 
@@ -47,7 +48,11 @@ actor ChatClient {
 
         let loadedModel = try await Model.load(modelPath: modelPath)
         model = loadedModel
-        chat = try Chat(model: loadedModel, tools: [circleArea]) // added tools
+
+        let newChat = try Chat(model: loadedModel)
+        try await newChat.resetContext(systemPrompt: systemPrompt)
+        try await newChat.setTools([circleArea])
+        chat = newChat
     }
 
     func reply(message: String) async throws -> String {
@@ -69,6 +74,6 @@ actor ChatClient {
             return
         }
 
-        try await chat.resetHistory()
+        try await chat.resetContext(systemPrompt: systemPrompt)
     }
 }

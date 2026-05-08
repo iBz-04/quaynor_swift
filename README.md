@@ -1,6 +1,6 @@
 # Quaynor Swift demo
 
-This repository demonstrates a **native Swift** client that uses the [**Quaynor** Swift package](https://www.quaynor.site/swift/) directly. There is **no Python backend** required.
+This repository demonstrates a **native Swift** client that uses the [**Quaynor** Swift package](https://www.quaynor.site/swift/) directly. 
 
 ## Demo
 
@@ -36,7 +36,7 @@ print(text)
 
 For full API and configuration details, see the Swift docs: https://www.quaynor.site/swift/
 
-## Running locally (overview)
+## Running locally
 
 1. Open [quaynor_swift.xcodeproj](quaynor_swift.xcodeproj) in Xcode.
 2. Build and run the SwiftUI app in the simulator or on a device.
